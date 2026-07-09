@@ -1,0 +1,23 @@
+[Unit]
+Description=Infinity Hotel PMS
+After=network.target
+
+[Service]
+Type=simple
+User=pms
+Group=pms
+WorkingDirectory=/opt/infinity-pms
+EnvironmentFile=/opt/infinity-pms/.env.production
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=5
+
+# Basic hardening for a Node web service.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/infinity-pms
+
+[Install]
+WantedBy=multi-user.target

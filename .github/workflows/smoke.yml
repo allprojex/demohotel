@@ -1,0 +1,53 @@
+name: Route smoke test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Optional: set these repo secrets to also cover authenticated routes.
+      LOVABLE_BROWSER_SUPABASE_STORAGE_KEY: ${{ secrets.LOVABLE_BROWSER_SUPABASE_STORAGE_KEY }}
+      LOVABLE_BROWSER_SUPABASE_SESSION_JSON: ${{ secrets.LOVABLE_BROWSER_SUPABASE_SESSION_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build (dev mode, skips prerender auth)
+        run: bun run build:dev
+
+      - name: Start dev server
+        run: |
+          bun run dev &
+          echo $! > .vite.pid
+          for i in {1..60}; do
+            if curl -sf http://localhost:8080 > /dev/null; then
+              echo "dev server up"; exit 0
+            fi
+            sleep 1
+          done
+          echo "dev server failed to start"; exit 1
+
+      - name: Run smoke test
+        run: node scripts/smoke.mjs
+        env:
+          BASE_URL: http://localhost:8080
+
+      - name: Stop dev server
+        if: always()
+        run: |
+          if [ -f .vite.pid ]; then kill "$(cat .vite.pid)" || true; fi
