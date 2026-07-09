@@ -28,7 +28,7 @@ sudo useradd --system --home /opt/infinity-pms --shell /usr/sbin/nologin pms || 
 ```bash
 sudo mkdir -p /opt/infinity-pms
 sudo chown "$USER:$USER" /opt/infinity-pms
-git clone https://github.com/awuahagyekum20/hotelms.git /opt/infinity-pms
+git clone https://github.com/allprojex/hotelms.git /opt/infinity-pms
 cd /opt/infinity-pms
 ```
 
