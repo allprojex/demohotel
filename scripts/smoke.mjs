@@ -8,6 +8,7 @@
  *   BASE_URL                              default http://localhost:8080
  *   LOVABLE_BROWSER_SUPABASE_STORAGE_KEY  optional; enables authenticated routes
  *   LOVABLE_BROWSER_SUPABASE_SESSION_JSON optional; paired with STORAGE_KEY
+ *   SMOKE_PROPERTY_ID                     optional; tests parameterized booking results
  */
 import { chromium } from "playwright";
 
@@ -15,15 +16,23 @@ const BASE = process.env.BASE_URL ?? "http://localhost:8080";
 const STORAGE_KEY = process.env.LOVABLE_BROWSER_SUPABASE_STORAGE_KEY;
 const SESSION_JSON = process.env.LOVABLE_BROWSER_SUPABASE_SESSION_JSON;
 const HAS_AUTH = Boolean(STORAGE_KEY && SESSION_JSON);
+const SMOKE_PROPERTY_ID = process.env.SMOKE_PROPERTY_ID;
+
+const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+const dayAfterTomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
 
 const PUBLIC_ROUTES = [
   "/",
   "/auth",
   "/reset-password",
   "/book",
-  "/book/results",
   "/book/manage",
   "/book/embed",
+  ...(SMOKE_PROPERTY_ID
+    ? [
+        `/book/results?propertyId=${encodeURIComponent(SMOKE_PROPERTY_ID)}&checkIn=${tomorrow}&checkOut=${dayAfterTomorrow}&guests=1`,
+      ]
+    : []),
 ];
 
 const AUTH_ROUTES = [
