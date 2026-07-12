@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy/update Infinity Hotel PMS on a Hostinger Ubuntu VPS.
+# Deploy/update ThesKwoff Hotel on a Hostinger Ubuntu VPS.
 # Run from /opt/infinity-pms after cloning the GitHub repository.
 
 set -euo pipefail

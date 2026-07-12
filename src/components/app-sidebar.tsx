@@ -194,7 +194,7 @@ export function AppSidebar() {
           <BrandMark className="h-7 w-auto shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
-              <div className="font-display text-sm font-semibold leading-tight truncate">Infinity Techub</div>
+              <div className="font-display text-sm font-semibold leading-tight truncate">ThesKwoff Hotel</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">PMS</div>
             </div>
           )}

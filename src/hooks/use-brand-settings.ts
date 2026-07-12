@@ -14,8 +14,8 @@ export type BrandSettings = {
 };
 
 const DEFAULTS: BrandSettings = {
-  app_name: "Infinity Techub PMS",
-  app_short_name: "Infinity Techub",
+  app_name: "ThesKwoff Hotel",
+  app_short_name: "ThesKwoff Hotel",
   tagline: null,
   logo_url: null,
   logo_dark_url: null,

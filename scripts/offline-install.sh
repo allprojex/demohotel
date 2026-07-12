@@ -80,7 +80,7 @@ UNIT="/etc/systemd/system/${SERVICE_NAME}.service"
 log "Writing $UNIT"
 cat > "$UNIT" <<EOF
 [Unit]
-Description=Infinity Hotel PMS
+Description=ThesKwoff Hotel
 After=network.target
 
 [Service]

@@ -12,9 +12,9 @@ import { Search, CalendarDays, Users, MapPin, Sparkles } from "lucide-react";
 export const Route = createFileRoute("/book/")({
   head: () => ({
     meta: [
-      { title: "Book direct — Infinity Techub Hotels" },
+      { title: "Book direct — ThesKwoff Hotel" },
       { name: "description", content: "Reserve rooms directly and unlock our best available rate." },
-      { property: "og:title", content: "Book direct — Infinity Techub Hotels" },
+      { property: "og:title", content: "Book direct — ThesKwoff Hotel" },
       { property: "og:description", content: "Best rate guaranteed on direct bookings." },
     ],
   }),
@@ -48,7 +48,7 @@ function BookIndex() {
           <Link to="/book" className="flex items-center gap-2">
             <BrandMark className="h-7 w-auto" />
             <div>
-              <div className="font-display text-sm font-semibold">Infinity Techub Hotels</div>
+              <div className="font-display text-sm font-semibold">ThesKwoff Hotel</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Direct Booking</div>
             </div>
           </Link>

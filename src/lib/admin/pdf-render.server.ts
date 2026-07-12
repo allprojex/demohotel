@@ -32,8 +32,8 @@ const H = 842;
 export async function buildDocPdf(data: DocData): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(data.title);
-  pdf.setProducer("Infinity Techub PMS");
-  pdf.setCreator("Infinity Techub PMS");
+  pdf.setProducer("ThesKwoff Hotel");
+  pdf.setCreator("ThesKwoff Hotel");
   pdf.setCreationDate(new Date());
 
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -119,7 +119,7 @@ export async function buildDocPdf(data: DocData): Promise<Uint8Array> {
     for (const line of wrap(data.notes, 90)) { page.drawText(line, { x: M, y, size: 9, font }); y -= 11; }
   }
 
-  page.drawText(`Generated ${new Date().toISOString()} · Infinity Techub PMS`, {
+  page.drawText(`Generated ${new Date().toISOString()} · ThesKwoff Hotel`, {
     x: M, y: M / 2, size: 8, font, color: rgb(0.6, 0.63, 0.68),
   });
 

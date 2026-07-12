@@ -1,4 +1,4 @@
-# Admin Deployment Checklist — Infinity Hotel PMS
+# Admin Deployment Checklist — ThesKwoff Hotel
 
 Run this checklist end-to-end before declaring a deployment ready. Every item must be checked.
 

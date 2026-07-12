@@ -1,4 +1,4 @@
-# Infinity Hotel PMS — User Training Guide
+# ThesKwoff Hotel — User Training Guide
 
 Version 1.0 · For all staff roles
 
