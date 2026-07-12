@@ -1,4 +1,4 @@
-# Offline Deployment Guide — Infinity Hotel PMS
+# Offline Deployment Guide — ThesKwoff Hotel
 
 Runtime: **Node.js 20 LTS or 22 LTS** (verified with Node v22).
 Package manager: **Bun** (preferred) or **npm**.
@@ -101,7 +101,7 @@ node .output/server/index.mjs
 ```bash
 sudo tee /etc/systemd/system/infinity-pms.service >/dev/null <<'EOF'
 [Unit]
-Description=Infinity Hotel PMS
+Description=ThesKwoff Hotel
 After=network.target
 
 [Service]

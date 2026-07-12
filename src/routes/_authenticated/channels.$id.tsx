@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/channels/$id")({
-  head: () => ({ meta: [{ title: "Channel · Infinity Techub PMS" }] }),
+  head: () => ({ meta: [{ title: "Channel · ThesKwoff Hotel" }] }),
   component: ChannelDetail,
   errorComponent: ({ error }) => <div className="p-6 text-sm text-destructive">{error.message}</div>,
   notFoundComponent: () => <div className="p-6">Channel not found</div>,

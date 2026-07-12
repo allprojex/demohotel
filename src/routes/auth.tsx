@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { isCurrentlyLocked, logFailedLogin, checkAndLockout } from "@/lib/security/threat-monitor.functions";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Infinity Techub PMS" }] }),
+  head: () => ({ meta: [{ title: "Sign in — ThesKwoff Hotel" }] }),
   component: AuthPage,
 });
 
@@ -89,7 +89,7 @@ function AuthPage() {
       <div className="w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
           <BrandMark className="h-12" />
-          <h1 className="mt-4 text-2xl font-semibold">Infinity Techub PMS</h1>
+          <h1 className="mt-4 text-2xl font-semibold">ThesKwoff Hotel</h1>
           <p className="mt-1 text-sm text-muted-foreground">Sign in to your hospitality workspace</p>
         </div>
 

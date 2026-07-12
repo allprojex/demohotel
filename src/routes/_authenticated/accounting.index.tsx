@@ -8,7 +8,7 @@ import { Wallet, TrendingUp, ArrowUpRight, ArrowDownRight, Lock } from "lucide-r
 import { format, startOfMonth, endOfMonth } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/accounting/")({
-  head: () => ({ meta: [{ title: "Accounting · Infinity Techub PMS" }] }),
+  head: () => ({ meta: [{ title: "Accounting · ThesKwoff Hotel" }] }),
   component: AccountingOverview,
 });
 

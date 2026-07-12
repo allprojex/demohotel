@@ -28,7 +28,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/admin_/security")({
   head: () => ({
     meta: [
-      { title: "Security Center · Infinity Techub PMS" },
+      { title: "Security Center · ThesKwoff Hotel" },
       { name: "description", content: "Threat monitoring, brute-force protection, session policies, and compliance controls." },
       { name: "robots", content: "noindex" },
     ],

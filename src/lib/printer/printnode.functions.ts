@@ -40,7 +40,7 @@ export const sendPrintNodeJob = createServerFn({ method: "POST" })
       title: data.title,
       contentType: data.contentType,
       content: data.content,
-      source: "Infinity Techub PMS",
+      source: "ThesKwoff Hotel",
       qty: data.copies ?? 1,
     };
     const res = await fetch(`${BASE}/printjobs`, {

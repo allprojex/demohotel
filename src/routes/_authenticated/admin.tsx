@@ -24,7 +24,7 @@ import { BrandModule } from "@/components/admin/modules/brand-module";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Administration · Infinity Techub PMS" },
+      { title: "Administration · ThesKwoff Hotel" },
       { name: "description", content: "System-wide admin console: manage properties, reservations, accounting, POS, inventory, channels, and users." },
       { name: "robots", content: "noindex" },
     ],

@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 export const Route = createFileRoute("/book/confirmation/$code")({
-  head: () => ({ meta: [{ title: "Booking confirmed — Infinity Techub Hotels" }] }),
+  head: () => ({ meta: [{ title: "Booking confirmed — ThesKwoff Hotel" }] }),
   validateSearch: (s) => z.object({ email: z.string().email() }).parse(s),
   component: Confirmation,
 });
@@ -33,7 +33,7 @@ function Confirmation() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <Link to="/book" className="flex items-center gap-2">
             <BrandMark className="h-7 w-auto" />
-            <span className="font-display font-semibold text-sm">Infinity Techub Hotels</span>
+            <span className="font-display font-semibold text-sm">ThesKwoff Hotel</span>
           </Link>
         </div>
       </header>
