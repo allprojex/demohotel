@@ -1,204 +1,577 @@
-import { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  createManagedAccount,
+  listManageableUsers,
+  resetManagedPassword,
+  setUserStatus,
+  type ManageableUser,
+} from "@/lib/users.functions";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { UserCog, UserPlus, Trash2, KeyRound, CheckCircle2, XCircle, ShieldAlert } from "lucide-react";
-import { CrudTable } from "@/components/admin/crud-table";
-import { DeleteConfirm } from "@/components/admin/delete-confirm";
-import { supabase } from "@/integrations/supabase/client";
-import { useServerFn } from "@tanstack/react-start";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { inviteUser, setUserStatus, resetUserPassword } from "@/lib/users.functions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { KeyRound, Plus, Shield, UserRound } from "lucide-react";
 import { toast } from "sonner";
-import type { AppRole } from "@/hooks/use-user-roles";
 
-interface Props { propertyId: string | null; }
-
-const ALL_ROLES: AppRole[] = ["super_admin","hotel_owner","general_manager","accountant","front_desk","reservations","housekeeping_supervisor","housekeeping","cashier","guest"];
+interface Props {
+  propertyId: string | null;
+}
+const STAFF_ROLES = [
+  "front_desk",
+  "reservations",
+  "cashier",
+  "accountant",
+  "housekeeping_supervisor",
+  "housekeeping",
+];
+const ADMIN_ROLES = ["general_manager", "hotel_owner", "super_admin"];
 
 export function UsersModule({ propertyId }: Props) {
+  const qc = useQueryClient();
+  const listUsers = useServerFn(listManageableUsers);
+  const changeStatus = useServerFn(setUserStatus);
+  const [createType, setCreateType] = useState<"staff" | "admin" | null>(null);
+  const [resetTarget, setResetTarget] = useState<ManageableUser | null>(null);
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [role, setRole] = useState("all");
+  const users = useQuery({
+    queryKey: ["managed-users", propertyId],
+    enabled: !!propertyId,
+    queryFn: () => listUsers({ data: { propertyId: propertyId! } }),
+  });
+  const filtered = useMemo(
+    () =>
+      (users.data ?? []).filter((u) => {
+        const needle = search.toLowerCase();
+        const hay = `${u.identifier} ${u.full_name} ${u.department ?? ""}`.toLowerCase();
+        return (
+          (!needle || hay.includes(needle)) &&
+          (type === "all" || u.account_type === type) &&
+          (status === "all" || u.status === status) &&
+          (role === "all" || u.roles.some((r) => r.role === role))
+        );
+      }),
+    [users.data, search, type, status, role],
+  );
+  const statusMut = useMutation({
+    mutationFn: (v: { userId: string; status: "active" | "suspended" | "disabled" }) =>
+      changeStatus({ data: { ...v, propertyId: propertyId! } }),
+    onSuccess: () => {
+      toast.success("Account status updated");
+      qc.invalidateQueries({ queryKey: ["managed-users", propertyId] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const refresh = () => qc.invalidateQueries({ queryKey: ["managed-users", propertyId] });
   return (
     <div className="space-y-4">
-      <UserRolesSection propertyId={propertyId} />
-      <ProfilesSection propertyId={propertyId} />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-semibold">User &amp; Staff Management</h2>
+          <p className="text-sm text-muted-foreground">
+            Register and manage property-scoped Staff and Administrators.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCreateType("staff")}>
+            <UserRound className="mr-1 h-4 w-4" />
+            Register Staff
+          </Button>
+          <Button onClick={() => setCreateType("admin")}>
+            <Shield className="mr-1 h-4 w-4" />
+            Register Administrator
+          </Button>
+        </div>
+      </div>
+      <Card className="p-4">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search ID, name or department"
+            aria-label="Search accounts"
+          />
+          <Filter
+            value={type}
+            setValue={setType}
+            label="Account type"
+            values={["staff", "admin"]}
+          />
+          <Filter
+            value={role}
+            setValue={setRole}
+            label="Role"
+            values={[...ADMIN_ROLES, ...STAFF_ROLES]}
+          />
+          <Filter
+            value={status}
+            setValue={setStatus}
+            label="Status"
+            values={["active", "pending", "suspended", "disabled"]}
+          />
+        </div>
+      </Card>
+      <Card className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Identifier / Name</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Role / Department</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Property</TableHead>
+              <TableHead>Last login / Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filtered.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell>
+                  <div className="font-mono font-medium">{u.identifier}</div>
+                  <div className="text-xs text-muted-foreground">{u.full_name}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={u.account_type === "admin" ? "default" : "secondary"}>
+                    {u.account_type}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div>{u.roles.map((r) => r.role.replaceAll("_", " ")).join(", ")}</div>
+                  <div className="text-xs text-muted-foreground">{u.department ?? "—"}</div>
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      u.status === "active"
+                        ? "default"
+                        : u.status === "disabled"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                  >
+                    {u.status}
+                  </Badge>
+                  {u.must_change_password && (
+                    <div className="mt-1 text-[10px] text-amber-600">Password change required</div>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs">
+                  {u.roles.length} assignment{u.roles.length === 1 ? "" : "s"}
+                </TableCell>
+                <TableCell className="text-xs">
+                  <div>{date(u.last_successful_login_at)}</div>
+                  <div className="text-muted-foreground">Created {date(u.created_at)}</div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setResetTarget(u)}
+                      title="Reset password"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </Button>
+                    {u.status !== "active" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => statusMut.mutate({ userId: u.id, status: "active" })}
+                      >
+                        Activate
+                      </Button>
+                    )}
+                    {u.status === "active" && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => statusMut.mutate({ userId: u.id, status: "suspended" })}
+                      >
+                        Suspend
+                      </Button>
+                    )}
+                    {u.status !== "disabled" && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm(`Disable ${u.identifier}?`))
+                            statusMut.mutate({ userId: u.id, status: "disabled" });
+                        }}
+                      >
+                        Disable
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!users.isLoading && filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                  No matching accounts.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+      {createType && (
+        <CreateDialog
+          accountType={createType}
+          currentPropertyId={propertyId!}
+          onClose={() => setCreateType(null)}
+          onDone={refresh}
+        />
+      )}
+      {resetTarget && (
+        <ResetDialog
+          user={resetTarget}
+          propertyId={propertyId!}
+          onClose={() => setResetTarget(null)}
+          onDone={refresh}
+        />
+      )}
     </div>
   );
 }
 
-function UserRolesSection({ propertyId }: { propertyId: string | null }) {
-  const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ email: "", fullName: "", role: "front_desk" as AppRole });
-  const invite = useServerFn(inviteUser);
-
-  const rolesQ = useQuery({
-    queryKey: ["admin", "user_roles", propertyId],
-    queryFn: async () => {
-      let q: any = supabase.from("user_roles").select("id, user_id, role, property_id");
-      if (propertyId) q = q.or(`property_id.eq.${propertyId},property_id.is.null`);
-      const { data, error } = await q;
-      if (error) throw error;
-      const rows = (data ?? []) as any[];
-      const uids = Array.from(new Set(rows.map((r) => String(r.user_id))));
-      let profiles: any[] = [];
-      if (uids.length) {
-        const { data: pr } = await supabase.from("profiles").select("id, full_name").in("id", uids);
-        profiles = pr ?? [];
-      }
-      const pmap = new Map(profiles.map((p) => [p.id, p.full_name]));
-      return rows.map((r) => ({ ...r, full_name: pmap.get(r.user_id) ?? String(r.user_id).slice(0, 8) })) as Array<{ id: string; user_id: string; role: AppRole; property_id: string | null; full_name: string }>;
-    },
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("user_roles").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { toast.success("Role revoked"); qc.invalidateQueries({ queryKey: ["admin", "user_roles", propertyId] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const inviteMut = useMutation({
-    mutationFn: async () => {
-      if (!form.email || !form.fullName) throw new Error("Email and name required");
-      if (form.role !== "super_admin" && !propertyId) throw new Error("Select a property first");
-      await invite({ data: { email: form.email, fullName: form.fullName, role: form.role, propertyId: propertyId ?? "" } });
-    },
-    onSuccess: () => { toast.success("User invited"); setOpen(false); setForm({ email: "", fullName: "", role: "front_desk" }); qc.invalidateQueries({ queryKey: ["admin", "user_roles", propertyId] }); qc.invalidateQueries({ queryKey: ["admin", "profiles", propertyId] }); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
+function Filter({
+  value,
+  setValue,
+  label,
+  values,
+}: {
+  value: string;
+  setValue: (v: string) => void;
+  label: string;
+  values: string[];
+}) {
   return (
-    <>
-      <CrudTable
-        title="User Roles" icon={<UserCog className="h-4 w-4" />}
-        rows={rolesQ.data} loading={rolesQ.isLoading} rowKey={(r) => r.id}
-        onAdd={() => setOpen(true)} addLabel="Invite user"
-        columns={[
-          { label: "User", cell: (r) => <div className="font-medium">{r.full_name}</div>, searchValue: (r) => r.full_name, printValue: (r) => r.full_name },
-          { label: "Role", cell: (r) => <Badge variant={r.role === "super_admin" ? "default" : "outline"}>{r.role}</Badge>, searchValue: (r) => r.role, printValue: (r) => r.role },
-          { label: "Scope", cell: (r) => r.property_id ? <span className="text-xs">This property</span> : <Badge className="text-[9px]">GLOBAL</Badge>, printValue: (r) => r.property_id ? "property" : "global" },
-        ]}
-        rowActions={(r) => <DeleteConfirm title={`Revoke ${r.role} from ${r.full_name}?`} triggerLabel={<><Trash2 className="h-3.5 w-3.5" /><span className="ml-1">Revoke</span></>} onConfirm={() => remove.mutateAsync(r.id)} />}
-      />
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Invite user</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div><Label>Full name</Label><Input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></div>
-            <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
-            <div><Label>Role</Label>
-              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{ALL_ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <p className="text-xs text-muted-foreground">Invited users start in <em>pending</em> status until approved below.</p>
-            {!propertyId && form.role !== "super_admin" && <div className="text-xs text-destructive">Select an active property to invite non-global users.</div>}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button onClick={() => inviteMut.mutate()} disabled={inviteMut.isPending}><UserPlus className="h-3.5 w-3.5 mr-1" />Invite</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <Select value={value} onValueChange={setValue}>
+      <SelectTrigger aria-label={label}>
+        <SelectValue placeholder={label} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All {label.toLowerCase()}s</SelectItem>
+        {values.map((v) => (
+          <SelectItem key={v} value={v}>
+            {v.replaceAll("_", " ")}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
+function date(value: string | null) {
+  return value ? new Date(value).toLocaleDateString() : "Never";
+}
 
-function ProfilesSection({ propertyId }: { propertyId: string | null }) {
-  const qc = useQueryClient();
-  const setStatus = useServerFn(setUserStatus);
-  const resetPwd = useServerFn(resetUserPassword);
-
-  const profilesQ = useQuery({
-    queryKey: ["admin", "profiles", propertyId],
-    enabled: !!propertyId,
+function CreateDialog({
+  accountType,
+  currentPropertyId,
+  onClose,
+  onDone,
+}: {
+  accountType: "staff" | "admin";
+  currentPropertyId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const create = useServerFn(createManagedAccount);
+  const roles = accountType === "admin" ? ADMIN_ROLES : STAFF_ROLES;
+  const properties = useQuery({
+    queryKey: ["account-properties"],
     queryFn: async () => {
-      // Only surface profiles that have a role in this property or are global.
-      const { data: roles } = await supabase.from("user_roles").select("user_id, role, property_id")
-        .or(propertyId ? `property_id.eq.${propertyId},property_id.is.null` : "property_id.is.null");
-      const uids = Array.from(new Set((roles ?? []).map((r: any) => String(r.user_id))));
-      if (uids.length === 0) return [];
-      const { data: profiles } = await supabase.from("profiles").select("*").in("id", uids);
-      // Get email via auth.admin listUsers proxy is out of scope; use profile fields.
-      return (profiles ?? []) as any[];
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id,name")
+        .eq("active", true)
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
     },
   });
-
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "profiles", propertyId] });
-
-  const statusMut = useMutation({
-    mutationFn: async (v: { userId: string; status: "active" | "disabled" | "pending" }) => {
-      await setStatus({ data: { userId: v.userId, status: v.status, propertyId: propertyId! } });
-    },
-    onSuccess: () => { toast.success("User status updated"); invalidate(); },
-    onError: (e: Error) => toast.error(e.message),
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    identifier: "",
+    email: "",
+    phone: "",
+    role: roles[0],
+    department: "",
+    propertyIds: [currentPropertyId],
+    password: "",
+    confirmation: "",
+    status: "active" as "active" | "pending",
   });
-
-  const resetMut = useMutation({
-    mutationFn: async (v: { userId: string; email: string }) => {
-      const r: any = await resetPwd({ data: { userId: v.userId, email: v.email, propertyId: propertyId! } });
-      return r;
-    },
-    onSuccess: (r: any) => {
-      toast.success("Password reset link generated");
-      if (r?.actionLink) navigator.clipboard.writeText(r.actionLink).catch(() => {});
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
+  const [busy, setBusy] = useState(false);
+  const [show, setShow] = useState(false);
+  const [caps, setCaps] = useState(false);
+  const set = (key: string, value: any) => setForm((f) => ({ ...f, [key]: value }));
+  async function save() {
+    setBusy(true);
+    try {
+      await create({ data: { ...form, accountType } });
+      toast.success(
+        `${accountType === "admin" ? "Administrator" : "Staff"} account created. Copy the temporary password now; it is not stored.`,
+      );
+      onDone();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Account creation failed");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
-    <Card>
-      <CardHeader className="pb-2"><CardTitle className="text-sm">Users ({profilesQ.data?.length ?? 0})</CardTitle></CardHeader>
-      <CardContent>
-        <CrudTable
-          title="Approve · Activate · Reset password"
-          icon={<ShieldAlert className="h-4 w-4" />}
-          rows={profilesQ.data} loading={profilesQ.isLoading} rowKey={(r) => r.id}
-          columns={[
-            { label: "Name", cell: (r) => <div className="font-medium">{r.full_name ?? "—"}</div>, searchValue: (r) => r.full_name ?? "", printValue: (r) => r.full_name ?? "" },
-            { label: "Phone", cell: (r) => r.phone ?? "—", searchValue: (r) => r.phone ?? "", printValue: (r) => r.phone ?? "" },
-            { label: "Status", cell: (r) => (
-              <Badge variant={r.status === "active" ? "default" : r.status === "disabled" ? "destructive" : "secondary"}>
-                {r.status ?? "active"}
-              </Badge>
-            ), searchValue: (r) => r.status ?? "active", printValue: (r) => r.status ?? "active" },
-          ]}
-          rowActions={(r) => {
-            const email = (r as any).email ?? "";
-            return (
-              <div className="flex items-center gap-1">
-                {r.status !== "active" && (
-                  <Button size="sm" variant="ghost" onClick={() => statusMut.mutate({ userId: r.id, status: "active" })} title="Approve / Activate">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                  </Button>
-                )}
-                {r.status !== "disabled" && (
-                  <Button size="sm" variant="ghost" onClick={() => statusMut.mutate({ userId: r.id, status: "disabled" })} title="Deactivate">
-                    <XCircle className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" onClick={async () => {
-                  const target = email || prompt("Enter user email for reset:") || "";
-                  if (!target) return;
-                  resetMut.mutate({ userId: r.id, email: target });
-                }} title="Send password reset link">
-                  <KeyRound className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            );
-          }}
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Register {accountType === "admin" ? "Administrator" : "Staff"}</DialogTitle>
+          <DialogDescription>
+            The user must replace this temporary password at first login.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="First name" value={form.firstName} setValue={(v) => set("firstName", v)} />
+          <Field label="Last name" value={form.lastName} setValue={(v) => set("lastName", v)} />
+          <Field
+            label={accountType === "admin" ? "Admin ID" : "Username / Staff ID"}
+            value={form.identifier}
+            setValue={(v) => set("identifier", v)}
+            placeholder={accountType === "admin" ? "ADMIN-001" : "STF-001"}
+          />
+          <Field
+            label="Email (optional, internal)"
+            value={form.email}
+            setValue={(v) => set("email", v)}
+            type="email"
+          />
+          <Field label="Phone number" value={form.phone} setValue={(v) => set("phone", v)} />
+          <Field
+            label="Department"
+            value={form.department}
+            setValue={(v) => set("department", v)}
+          />
+          <div>
+            <Label>Role</Label>
+            <Select value={form.role} onValueChange={(v) => set("role", v)}>
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {roles.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r.replaceAll("_", " ")}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select value={form.status} onValueChange={(v) => set("status", v)}>
+              <SelectTrigger className="mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="sm:col-span-2">
+            <Label>Assigned properties</Label>
+            <div className="mt-2 grid gap-2 rounded-md border p-3 sm:grid-cols-2">
+              {properties.data?.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={form.propertyIds.includes(p.id)}
+                    onCheckedChange={(checked) =>
+                      set(
+                        "propertyIds",
+                        checked
+                          ? [...form.propertyIds, p.id]
+                          : form.propertyIds.filter((id) => id !== p.id),
+                      )
+                    }
+                  />
+                  {p.name}
+                </label>
+              ))}
+            </div>
+          </div>
+          <Field
+            label="Default password"
+            value={form.password}
+            setValue={(v) => set("password", v)}
+            type={show ? "text" : "password"}
+            onKey={(e) => setCaps(e.getModifierState("CapsLock"))}
+          />
+          <Field
+            label="Confirm default password"
+            value={form.confirmation}
+            setValue={(v) => set("confirmation", v)}
+            type={show ? "text" : "password"}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={show} onCheckedChange={(v) => setShow(!!v)} />
+            Show passwords
+          </label>
+          {caps && <span className="text-sm text-amber-600">Caps Lock is on</span>}
+          <p className="sm:col-span-2 text-xs text-muted-foreground">
+            At least 10 characters with uppercase, lowercase, a number and a symbol.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            <Plus className="mr-1 h-4 w-4" />
+            {busy ? "Creating…" : "Create account"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+function ResetDialog({
+  user,
+  propertyId,
+  onClose,
+  onDone,
+}: {
+  user: ManageableUser;
+  propertyId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const reset = useServerFn(resetManagedPassword);
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    if (
+      !confirm(`Reset the password for ${user.identifier}? Existing credentials will stop working.`)
+    )
+      return;
+    setBusy(true);
+    try {
+      await reset({ data: { userId: user.id, password, confirmation, propertyId } });
+      toast.success("Temporary password set; change required at next login.");
+      onDone();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Reset password</DialogTitle>
+          <DialogDescription>
+            Set a temporary password for {user.identifier}. It will not be logged or stored by the
+            application.
+          </DialogDescription>
+        </DialogHeader>
+        <Field
+          label="Temporary password"
+          value={password}
+          setValue={setPassword}
+          type={show ? "text" : "password"}
         />
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          Approving sets the user to <em>active</em> and clears any authentication ban. Deactivating bans the user from signing in. Reset copies a recovery link to your clipboard.
+        <Field
+          label="Confirm temporary password"
+          value={confirmation}
+          setValue={setConfirmation}
+          type={show ? "text" : "password"}
+        />
+        <label className="flex items-center gap-2 text-sm">
+          <Checkbox checked={show} onCheckedChange={(v) => setShow(!!v)} />
+          Show passwords
+        </label>
+        <p className="text-xs text-muted-foreground">
+          At least 10 characters with uppercase, lowercase, a number and a symbol.
         </p>
-      </CardContent>
-    </Card>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={busy}>
+            {busy ? "Resetting…" : "Reset password"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+function Field({
+  label,
+  value,
+  setValue,
+  type = "text",
+  placeholder,
+  onKey,
+}: {
+  label: string;
+  value: string;
+  setValue: (v: string) => void;
+  type?: string;
+  placeholder?: string;
+  onKey?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+}) {
+  const id = label.toLowerCase().replace(/\W+/g, "-");
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        className="mt-2"
+        type={type}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={onKey}
+        placeholder={placeholder}
+        autoComplete={type === "password" ? "new-password" : undefined}
+      />
+    </div>
   );
 }

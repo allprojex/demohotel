@@ -1,4 +1,10 @@
-import { createFileRoute, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +17,7 @@ import { useActiveProperty } from "@/hooks/use-active-property";
 import { isAllowed, requiredRolesFor } from "@/lib/admin/route-permissions";
 import { getDeviceContext } from "@/lib/device-context";
 import { pingSession } from "@/lib/sessions.functions";
+import { getPasswordChangeState } from "@/lib/auth.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -35,6 +42,15 @@ function AuthLayout() {
   const required = requiredRolesFor(currentPath);
   const guardReady = !required || !rolesQ.isLoading;
   const allowed = !required || isAllowed(currentPath, rows, propertyId ?? null);
+  const passwordState = useServerFn(getPasswordChangeState);
+
+  useEffect(() => {
+    passwordState()
+      .then((state) => {
+        if (state?.must_change_password) navigate({ to: "/change-password", replace: true });
+      })
+      .catch(() => navigate({ to: "/auth", replace: true }));
+  }, [navigate, passwordState]);
 
   useEffect(() => {
     const reset = () => {
@@ -59,10 +75,16 @@ function AuthLayout() {
   useEffect(() => {
     const ctx = getDeviceContext();
     const beat = () => {
-      ping({ data: {
-        sessionKey: ctx.sessionKey, propertyId: propertyId ?? null,
-        userAgent: ctx.userAgent, os: ctx.os, browser: ctx.browser, fingerprint: ctx.fingerprint,
-      } }).catch(() => {});
+      ping({
+        data: {
+          sessionKey: ctx.sessionKey,
+          propertyId: propertyId ?? null,
+          userAgent: ctx.userAgent,
+          os: ctx.os,
+          browser: ctx.browser,
+          fingerprint: ctx.fingerprint,
+        },
+      }).catch(() => {});
     };
     beat();
     const id = setInterval(beat, 60_000);

@@ -2,9 +2,27 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Building2, CalendarDays, Wallet, Utensils, Package, Radio, UserCog, Lock, Beaker, Palette } from "lucide-react";
+import {
+  ShieldCheck,
+  Building2,
+  CalendarDays,
+  Wallet,
+  Utensils,
+  Package,
+  Radio,
+  UserCog,
+  Lock,
+  Beaker,
+  Palette,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveProperty } from "@/hooks/use-active-property";
 import { useHasAnyRole } from "@/hooks/use-user-roles";
@@ -25,7 +43,11 @@ export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
       { title: "Administration · ThesKwoff Hotel" },
-      { name: "description", content: "System-wide admin console: manage properties, reservations, accounting, POS, inventory, channels, and users." },
+      {
+        name: "description",
+        content:
+          "System-wide admin console: manage properties, reservations, accounting, POS, inventory, channels, and users.",
+      },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -39,7 +61,7 @@ const TABS = [
   { key: "pos", label: "POS", icon: Utensils },
   { key: "inventory", label: "Inventory", icon: Package },
   { key: "channels", label: "Channels", icon: Radio },
-  { key: "users", label: "Users", icon: UserCog },
+  { key: "users", label: "User & Staff Management", icon: UserCog },
   { key: "brand", label: "Brand", icon: Palette },
   { key: "trial", label: "Trial data", icon: Beaker },
 ] as const;
@@ -79,7 +101,8 @@ function AdminPage() {
           <div>
             <h1 className="text-2xl font-display font-semibold">Administration</h1>
             <p className="text-xs text-muted-foreground">
-              All actions and printed documents target the selected property. Authorization is re-checked when you switch.
+              All actions and printed documents target the selected property. Authorization is
+              re-checked when you switch.
             </p>
           </div>
         </div>
@@ -113,25 +136,46 @@ function AdminPage() {
       {!propertyId ? (
         <AccessDenied message="Select a property from the header to load the admin console." />
       ) : !gate.allowed ? (
-        <AccessDenied message={`You don't have admin access for ${active?.name ?? "this property"}. Switch to a property where you are a super admin, hotel owner, or general manager.`} />
+        <AccessDenied
+          message={`You don't have admin access for ${active?.name ?? "this property"}. Switch to a property where you are a super admin, hotel owner, or general manager.`}
+        />
       ) : (
         <Tabs value={tab} onValueChange={(v) => setTab(v as typeof tab)} className="space-y-4">
           <TabsList className="flex flex-wrap h-auto">
             {TABS.map((t) => (
               <TabsTrigger key={t.key} value={t.key} className="gap-1.5">
-                <t.icon className="h-3.5 w-3.5" />{t.label}
+                <t.icon className="h-3.5 w-3.5" />
+                {t.label}
               </TabsTrigger>
             ))}
           </TabsList>
-          <TabsContent value="properties"><PropertiesModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="reservations"><ReservationsModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="accounting"><AccountingModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="pos"><PosModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="inventory"><InventoryModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="channels"><ChannelsModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="users"><UsersModule propertyId={propertyId} /></TabsContent>
-          <TabsContent value="brand"><BrandModule /></TabsContent>
-          <TabsContent value="trial"><TrialDataModule propertyId={propertyId} /></TabsContent>
+          <TabsContent value="properties">
+            <PropertiesModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="reservations">
+            <ReservationsModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="accounting">
+            <AccountingModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="pos">
+            <PosModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="inventory">
+            <InventoryModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="channels">
+            <ChannelsModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="users">
+            <UsersModule propertyId={propertyId} />
+          </TabsContent>
+          <TabsContent value="brand">
+            <BrandModule />
+          </TabsContent>
+          <TabsContent value="trial">
+            <TrialDataModule propertyId={propertyId} />
+          </TabsContent>
         </Tabs>
       )}
     </div>
