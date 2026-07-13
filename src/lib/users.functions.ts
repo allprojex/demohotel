@@ -323,6 +323,66 @@ export const createManagedAccount = createServerFn({ method: "POST" })
     ),
   );
 
+export const updateManagedIdentifier = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { userId: string; identifier: string; propertyId: string }) => {
+    if (!d.userId || !d.propertyId) throw new Error("User and property are required.");
+    return { ...d, identifier: validateIdentifier(d.identifier) };
+  })
+  .handler(async ({ data, context }) =>
+    runServerOp({ op: "users.updateManagedIdentifier", userId: data.userId }, async () => {
+      await assertAdmin(context, data.propertyId);
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+      const [targetResult, targetRolesResult, callerRolesResult] = await Promise.all([
+        (supabaseAdmin.from("profiles") as any)
+          .select("id,identifier,account_type")
+          .eq("id", data.userId)
+          .maybeSingle(),
+        (supabaseAdmin.from("user_roles") as any).select("property_id").eq("user_id", data.userId),
+        (supabaseAdmin.from("user_roles") as any).select("role").eq("user_id", context.userId),
+      ]);
+      if (targetResult.error) throw targetResult.error;
+      if (targetRolesResult.error) throw targetRolesResult.error;
+      if (callerRolesResult.error) throw callerRolesResult.error;
+      const target = targetResult.data;
+      if (!target) throw new Error("Account not found.");
+      const targetIsInScope = (targetRolesResult.data ?? []).some(
+        (role: any) => role.property_id === null || role.property_id === data.propertyId,
+      );
+      if (!targetIsInScope) throw new Error("Account is outside your property scope.");
+      if (
+        target.account_type === "admin" &&
+        !(callerRolesResult.data ?? []).some((role: any) => role.role === "super_admin")
+      ) {
+        throw new Error("Only a Super Admin may change an Administrator ID.");
+      }
+
+      const normalized = normalizeIdentifier(data.identifier);
+      const duplicate = await (supabaseAdmin.from("profiles") as any)
+        .select("id")
+        .eq("identifier_normalized", normalized)
+        .neq("id", data.userId)
+        .maybeSingle();
+      if (duplicate.error) throw duplicate.error;
+      if (duplicate.data) throw new Error("That identifier is already assigned.");
+
+      const updated = await (supabaseAdmin.from("profiles") as any)
+        .update({ identifier: data.identifier })
+        .eq("id", data.userId);
+      if (updated.error) throw updated.error;
+      await (supabaseAdmin.from("audit_logs") as any).insert({
+        user_id: context.userId,
+        property_id: data.propertyId,
+        action: "users.identifier.changed",
+        entity: "profiles",
+        entity_id: data.userId,
+        meta: { previous_identifier: target.identifier, new_identifier: data.identifier },
+      });
+      return { ok: true, identifier: data.identifier };
+    }),
+  );
+
 export const resetManagedPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(

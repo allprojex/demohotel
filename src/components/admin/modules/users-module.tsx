@@ -8,6 +8,7 @@ import {
   listManageableUsers,
   resetManagedPassword,
   setUserStatus,
+  updateManagedIdentifier,
   type ManageableUser,
 } from "@/lib/users.functions";
 import { Button } from "@/components/ui/button";
@@ -39,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { KeyRound, Plus, Shield, UserRound } from "lucide-react";
+import { KeyRound, Pencil, Plus, Shield, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -61,6 +62,7 @@ export function UsersModule({ propertyId }: Props) {
   const changeStatus = useServerFn(setUserStatus);
   const [createType, setCreateType] = useState<"staff" | "admin" | null>(null);
   const [resetTarget, setResetTarget] = useState<ManageableUser | null>(null);
+  const [identifierTarget, setIdentifierTarget] = useState<ManageableUser | null>(null);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("all");
   const [status, setStatus] = useState("all");
@@ -199,6 +201,15 @@ export function UsersModule({ propertyId }: Props) {
                     <Button
                       size="sm"
                       variant="ghost"
+                      onClick={() => setIdentifierTarget(u)}
+                      title="Change ID"
+                      aria-label={`Change ID for ${u.identifier}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={() => setResetTarget(u)}
                       title="Reset password"
                     >
@@ -261,6 +272,14 @@ export function UsersModule({ propertyId }: Props) {
           user={resetTarget}
           propertyId={propertyId!}
           onClose={() => setResetTarget(null)}
+          onDone={refresh}
+        />
+      )}
+      {identifierTarget && (
+        <IdentifierDialog
+          user={identifierTarget}
+          propertyId={propertyId!}
+          onClose={() => setIdentifierTarget(null)}
           onDone={refresh}
         />
       )}
@@ -469,6 +488,62 @@ function CreateDialog({
     </Dialog>
   );
 }
+function IdentifierDialog({
+  user,
+  propertyId,
+  onClose,
+  onDone,
+}: {
+  user: ManageableUser;
+  propertyId: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const updateIdentifier = useServerFn(updateManagedIdentifier);
+  const [identifier, setIdentifier] = useState(user.identifier);
+  const [busy, setBusy] = useState(false);
+  async function save() {
+    setBusy(true);
+    try {
+      await updateIdentifier({ data: { userId: user.id, identifier, propertyId } });
+      toast.success(`${user.account_type === "admin" ? "Admin ID" : "Staff ID"} updated.`);
+      onDone();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "ID update failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  const label = user.account_type === "admin" ? "Admin ID" : "Username / Staff ID";
+  return (
+    <Dialog open onOpenChange={(v) => !v && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Change {label}</DialogTitle>
+          <DialogDescription>
+            Set the login ID for {user.full_name || user.identifier}. Their email, password, roles
+            and property assignments will not change.
+          </DialogDescription>
+        </DialogHeader>
+        <Field label={label} value={identifier} setValue={setIdentifier} />
+        <p className="text-xs text-muted-foreground">
+          Use 3–80 letters, numbers, dots, underscores, hyphens or @ symbols with no spaces. The ID
+          must be unique.
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={save} disabled={busy || identifier.trim() === user.identifier}>
+            {busy ? "Saving…" : "Save ID"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function ResetDialog({
   user,
   propertyId,
