@@ -23,9 +23,9 @@ export function isEmailAddress(value: string): boolean {
   return trimmed.length <= 254 && EMAIL_PATTERN.test(trimmed);
 }
 
-export function validateLoginCredential(value: string, accountType: LoginAccountType): string {
+export function validateLoginCredential(value: string, _accountType: LoginAccountType): string {
   const trimmed = value.trim();
-  if (accountType === "admin" && isEmailAddress(trimmed)) return trimmed;
+  if (isEmailAddress(trimmed)) return trimmed;
   return validateIdentifier(trimmed);
 }
 

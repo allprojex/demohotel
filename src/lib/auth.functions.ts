@@ -55,13 +55,13 @@ export const identifierSignIn = createServerFn({ method: "POST" })
     const auth = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const adminEmailLogin = data.accountType === "admin" && isEmailAddress(data.identifier);
+    const emailLogin = isEmailAddress(data.identifier);
     let succeeded = false;
     try {
       let profile: any;
       let signed: Awaited<ReturnType<typeof auth.auth.signInWithPassword>>;
 
-      if (adminEmailLogin) {
+      if (emailLogin) {
         signed = await auth.auth.signInWithPassword({
           email: data.identifier,
           password: data.password,

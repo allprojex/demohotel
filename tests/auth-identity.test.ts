@@ -32,12 +32,14 @@ describe("Staff/Admin identifiers", () => {
     expect(IDENTIFIER_PATTERN.test("staff+one")).toBe(false);
   });
 
-  it("accepts an existing email only for the Admin login channel", () => {
+  it("accepts an existing email for both login channels", () => {
     expect(isEmailAddress("owner+hotel@example.com")).toBe(true);
     expect(validateLoginCredential(" owner+hotel@example.com ", "admin")).toBe(
       "owner+hotel@example.com",
     );
-    expect(() => validateLoginCredential("owner+hotel@example.com", "staff")).toThrow();
+    expect(validateLoginCredential(" staff+desk@example.com ", "staff")).toBe(
+      "staff+desk@example.com",
+    );
   });
 
   it("keeps @ usernames without an email domain as identifiers", () => {
