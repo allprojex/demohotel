@@ -34,8 +34,12 @@ function ChangePasswordPage() {
     try {
       validatePassword(password);
       if (password !== confirmation) throw new Error("Passwords do not match.");
-      await change({ data: { password, confirmation } });
-      await supabase.auth.refreshSession();
+      const result = await change({ data: { password, confirmation } });
+      const session = await supabase.auth.setSession({
+        access_token: result.accessToken,
+        refresh_token: result.refreshToken,
+      });
+      if (session.error) throw session.error;
       toast.success("Password changed");
       navigate({ to: "/dashboard", replace: true });
     } catch (e) {

@@ -142,5 +142,23 @@ export const changeOwnPassword = createServerFn({ method: "POST" })
       entity: "profiles",
       entity_id: context.userId,
     });
-    return { ok: true };
+
+    // Updating a password through the Admin API invalidates refresh tokens. Issue a
+    // new normal Supabase session so the mandatory-change flow can continue safely.
+    const email = updated.data.user.email;
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!email || !url || !key) throw new Error("Password changed. Please sign in again.");
+    const auth = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const signed = await auth.auth.signInWithPassword({ email, password: data.password });
+    if (signed.error || !signed.data.session) {
+      throw new Error("Password changed. Please sign in again.");
+    }
+    return {
+      ok: true,
+      accessToken: signed.data.session.access_token,
+      refreshToken: signed.data.session.refresh_token,
+    };
   });
