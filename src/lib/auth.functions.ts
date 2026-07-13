@@ -7,8 +7,9 @@ import {
   requireSupabaseAuthAllowPasswordChange,
 } from "@/integrations/supabase/auth-middleware";
 import {
+  isEmailAddress,
   normalizeIdentifier,
-  validateIdentifier,
+  validateLoginCredential,
   validatePassword,
   type LoginAccountType,
 } from "@/lib/auth-identity";
@@ -32,7 +33,7 @@ export const identifierSignIn = createServerFn({ method: "POST" })
     if (d.accountType !== "staff" && d.accountType !== "admin") throw new Error(INVALID);
     return {
       accountType: d.accountType,
-      identifier: validateIdentifier(d.identifier),
+      identifier: validateLoginCredential(d.identifier, d.accountType),
       password: d.password,
     };
   })
@@ -48,26 +49,46 @@ export const identifierSignIn = createServerFn({ method: "POST" })
       .gte("created_at", since);
     if ((attempts.count ?? 0) >= 5) throw new Error(INVALID);
 
-    const profileRes = await (supabaseAdmin.from("profiles") as any)
-      .select("id,account_type,status,must_change_password")
-      .eq("identifier_normalized", normalized)
-      .maybeSingle();
-    const profile = profileRes.data;
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) throw new Error("Authentication is unavailable");
+    const auth = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const adminEmailLogin = data.accountType === "admin" && isEmailAddress(data.identifier);
     let succeeded = false;
     try {
+      let profile: any;
+      let signed: Awaited<ReturnType<typeof auth.auth.signInWithPassword>>;
+
+      if (adminEmailLogin) {
+        signed = await auth.auth.signInWithPassword({
+          email: data.identifier,
+          password: data.password,
+        });
+        if (signed.error || !signed.data.session || !signed.data.user) throw new Error(INVALID);
+        const profileRes = await (supabaseAdmin.from("profiles") as any)
+          .select("id,account_type,status,must_change_password")
+          .eq("id", signed.data.user.id)
+          .maybeSingle();
+        profile = profileRes.data;
+      } else {
+        const profileRes = await (supabaseAdmin.from("profiles") as any)
+          .select("id,account_type,status,must_change_password")
+          .eq("identifier_normalized", normalized)
+          .maybeSingle();
+        profile = profileRes.data;
+        if (!profile || profile.account_type !== data.accountType || profile.status !== "active")
+          throw new Error(INVALID);
+        const authUser = await supabaseAdmin.auth.admin.getUserById(profile.id);
+        const email = authUser.data.user?.email;
+        if (!email) throw new Error(INVALID);
+        signed = await auth.auth.signInWithPassword({ email, password: data.password });
+        if (signed.error || !signed.data.session) throw new Error(INVALID);
+      }
+
       if (!profile || profile.account_type !== data.accountType || profile.status !== "active")
         throw new Error(INVALID);
-      const authUser = await supabaseAdmin.auth.admin.getUserById(profile.id);
-      const email = authUser.data.user?.email;
-      if (!email) throw new Error(INVALID);
-      const url = process.env.SUPABASE_URL;
-      const key = process.env.SUPABASE_PUBLISHABLE_KEY;
-      if (!url || !key) throw new Error("Authentication is unavailable");
-      const auth = createClient(url, key, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      const signed = await auth.auth.signInWithPassword({ email, password: data.password });
-      if (signed.error || !signed.data.session) throw new Error(INVALID);
       succeeded = true;
       const now = new Date().toISOString();
       await Promise.all([

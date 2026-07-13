@@ -87,7 +87,7 @@ function AuthPage() {
           <form className="space-y-5" onSubmit={submit}>
             <div className="space-y-2">
               <Label htmlFor="identifier">
-                {accountType === "staff" ? "Username / Staff ID" : "Admin ID"}
+                {accountType === "staff" ? "Username / Staff ID" : "Admin ID or Email"}
               </Label>
               <Input
                 id="identifier"
@@ -96,13 +96,13 @@ function AuthPage() {
                 placeholder={
                   accountType === "staff"
                     ? "Enter your username or Staff ID"
-                    : "Enter your Admin ID"
+                    : "Enter your Admin ID or email"
                 }
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 autoComplete="username"
-                pattern="[A-Za-z0-9._@-]+"
+                pattern={accountType === "staff" ? "[A-Za-z0-9._@-]+" : undefined}
                 required
               />
             </div>

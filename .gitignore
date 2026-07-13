@@ -31,6 +31,9 @@ __pycache__/
 .wrangler/
 .dev.vars
 
+# Local Supabase CLI link/cache data (may contain connection details).
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

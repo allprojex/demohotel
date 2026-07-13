@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   IDENTIFIER_PATTERN,
+  isEmailAddress,
   normalizeIdentifier,
   validateIdentifier,
+  validateLoginCredential,
   validatePassword,
 } from "@/lib/auth-identity";
 
@@ -28,6 +30,18 @@ describe("Staff/Admin identifiers", () => {
 
   it("rejects unapproved identifier symbols", () => {
     expect(IDENTIFIER_PATTERN.test("staff+one")).toBe(false);
+  });
+
+  it("accepts an existing email only for the Admin login channel", () => {
+    expect(isEmailAddress("owner+hotel@example.com")).toBe(true);
+    expect(validateLoginCredential(" owner+hotel@example.com ", "admin")).toBe(
+      "owner+hotel@example.com",
+    );
+    expect(() => validateLoginCredential("owner+hotel@example.com", "staff")).toThrow();
+  });
+
+  it("keeps @ usernames without an email domain as identifiers", () => {
+    expect(validateLoginCredential("Admin@Head", "admin")).toBe("Admin@Head");
   });
 });
 
