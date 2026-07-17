@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Palette, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/properties")({
@@ -56,7 +56,7 @@ function PropertiesPage() {
       <Card>
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Name</TableHead><TableHead>Code</TableHead><TableHead>Currency</TableHead><TableHead>Timezone</TableHead><TableHead>Address</TableHead>
+            <TableHead>Name</TableHead><TableHead>Code</TableHead><TableHead>Currency</TableHead><TableHead>Timezone</TableHead><TableHead>Address</TableHead><TableHead>Demo</TableHead><TableHead />
           </TableRow></TableHeader>
           <TableBody>
             {props.data?.map((p) => (
@@ -80,6 +80,8 @@ function PropertiesPage() {
                 </TableCell>
                 <TableCell>{p.timezone}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">{p.address ?? "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{(p as any).is_demo ? `Until ${new Date((p as any).demo_expires_at).toLocaleDateString()}` : "Permanent"}</TableCell>
+                <TableCell><CustomizeProperty property={p as any} onDone={() => qc.invalidateQueries({ queryKey: ["properties"] })} /></TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -87,6 +89,35 @@ function PropertiesPage() {
       </Card>
     </div>
   );
+}
+
+function CustomizeProperty({ property, onDone }: { property: any; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [f, setF] = useState({ name: property.name ?? "", brand_tagline: property.brand_tagline ?? "", brand_primary_color: property.brand_primary_color ?? "#0f766e", address: property.address ?? "", phone: property.phone ?? "", email: property.email ?? "", website: property.website ?? "" });
+  async function save() {
+    setSaving(true);
+    const { error } = await (supabase.from("properties") as any).update(f).eq("id", property.id);
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Hotel customization saved"); setOpen(false); onDone();
+  }
+  return <Dialog open={open} onOpenChange={setOpen}>
+    <DialogTrigger asChild><Button size="sm" variant="outline"><Palette className="mr-1 h-3.5 w-3.5" />Customize</Button></DialogTrigger>
+    <DialogContent><DialogHeader><DialogTitle>Customize your hotel demo</DialogTitle></DialogHeader>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2"><Label>Hotel name</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>Tagline</Label><Input value={f.brand_tagline} onChange={(e) => setF({ ...f, brand_tagline: e.target.value })} /></div>
+        <div><Label>Brand colour</Label><Input type="color" value={f.brand_primary_color} onChange={(e) => setF({ ...f, brand_primary_color: e.target.value })} /></div>
+        <div><Label>Phone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>Address</Label><Input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} /></div>
+        <div><Label>Email</Label><Input type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></div>
+        <div><Label>Website</Label><Input value={f.website} onChange={(e) => setF({ ...f, website: e.target.value })} /></div>
+      </div>
+      <p className="text-xs text-muted-foreground">Customization applies only to this evaluation workspace. Demo expiry and platform ownership cannot be changed.</p>
+      <DialogFooter><Button onClick={save} disabled={saving || !f.name.trim()}>{saving ? "Saving…" : "Save customization"}</Button></DialogFooter>
+    </DialogContent>
+  </Dialog>;
 }
 
 function NewProperty({ onDone, currencyOptions }: { onDone: () => void; currencyOptions: { code: string; name: string }[] }) {

@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { identifierSignIn } from "@/lib/auth.functions";
+import { createDemoWorkspace, identifierSignIn } from "@/lib/auth.functions";
 import type { LoginAccountType } from "@/lib/auth-identity";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +20,19 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const signIn = useServerFn(identifierSignIn);
+  const createDemo = useServerFn(createDemoWorkspace);
+  const [mode, setMode] = useState<"signin" | "demo">("signin");
   const [accountType, setAccountType] = useState<LoginAccountType>("staff");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [capsLock, setCapsLock] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [hotelName, setHotelName] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [primaryColor, setPrimaryColor] = useState("#0f766e");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -54,6 +61,24 @@ function AuthPage() {
     }
   }
 
+  async function startDemo(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const result = await createDemo({ data: { hotelName, fullName, email, password, primaryColor, acceptedTerms } });
+      const session = await supabase.auth.setSession({ access_token: result.accessToken, refresh_token: result.refreshToken });
+      if (session.error) throw session.error;
+      localStorage.setItem("iti-active-property", result.propertyId);
+      window.dispatchEvent(new Event("iti-property-changed"));
+      toast.success("Your 14-day hotel demo is ready");
+      navigate({ to: "/dashboard", replace: true });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not create your demo");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 py-8"
@@ -66,6 +91,15 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">Property Management System</p>
         </header>
         <section className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-elegant)] sm:p-6">
+          <div
+            className="mb-5 grid grid-cols-2 rounded-lg border p-1"
+            role="tablist"
+            aria-label="Demo access"
+          >
+            <button type="button" role="tab" aria-selected={mode === "signin"} onClick={() => setMode("signin")} className={cn("rounded-md px-3 py-2 text-sm font-medium", mode === "signin" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Sign in</button>
+            <button type="button" role="tab" aria-selected={mode === "demo"} onClick={() => setMode("demo")} className={cn("rounded-md px-3 py-2 text-sm font-medium", mode === "demo" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>Start hotel demo</button>
+          </div>
+          {mode === "signin" ? <>
           <div
             className="mb-6 grid grid-cols-2 rounded-lg bg-muted p-1"
             role="tablist"
@@ -142,9 +176,25 @@ function AuthPage() {
           <p className="mt-5 text-center text-xs text-muted-foreground">
             Contact your system administrator to reset your password.
           </p>
+          </> : <form className="space-y-4" onSubmit={startDemo}>
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+              Create a private 14-day workspace. Customize your hotel and test every feature; the software platform remains owned and managed by Infinity Tech Hub.
+            </div>
+            <div className="space-y-2"><Label htmlFor="hotel-name">Hotel name</Label><Input id="hotel-name" value={hotelName} onChange={(e) => setHotelName(e.target.value)} required maxLength={100} /></div>
+            <div className="space-y-2"><Label htmlFor="full-name">Your full name</Label><Input id="full-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required maxLength={100} /></div>
+            <div className="space-y-2"><Label htmlFor="demo-email">Work email</Label><Input id="demo-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" /></div>
+            <div className="grid grid-cols-[1fr_auto] items-end gap-3">
+              <div className="space-y-2"><Label htmlFor="demo-password">Password</Label><Input id="demo-password" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={10} autoComplete="new-password" /></div>
+              <Button type="button" variant="outline" size="icon" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"}>{show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Use 10+ characters with uppercase, lowercase, a number and a symbol.</p>
+            <div className="space-y-2"><Label htmlFor="brand-color">Brand colour</Label><div className="flex gap-2"><Input id="brand-color" type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} className="w-16 p-1" /><Input value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} pattern="#[0-9A-Fa-f]{6}" /></div></div>
+            <label className="flex items-start gap-2 text-xs text-muted-foreground"><input type="checkbox" className="mt-0.5" checked={acceptedTerms} onChange={(e) => setAcceptedTerms(e.target.checked)} required /><span>I accept that this is a temporary evaluation workspace. I receive no ownership, resale, source-code, or permanent hosting rights.</span></label>
+            <Button className="w-full" size="lg" disabled={loading}>{loading ? "Creating your demo…" : "Create my hotel demo"}</Button>
+          </form>}
         </section>
         <p className="mt-5 text-center text-xs text-muted-foreground">
-          Accounts are created by an authorised administrator.
+          {mode === "signin" ? "Accounts are created by an authorised administrator." : "Demo data may be reset or removed after the evaluation period."}
         </p>
       </main>
     </div>
