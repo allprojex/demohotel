@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useUserRoles, EXEC_ROLES, SYNC_ROLES, type AppRole } from "@/hooks/use-user-roles";
 import { useActiveProperty } from "@/hooks/use-active-property";
+import { useBrandSettings } from "@/hooks/use-brand-settings";
 import { ADMIN_ROLES } from "@/lib/admin/permissions";
 
 type NavItem = {
@@ -148,6 +149,7 @@ const opsGroups: { label: string; items: NavItem[] }[] = [
 ];
 
 export function AppSidebar() {
+  const { data: brand } = useBrandSettings();
   const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const currentPath = useRouterState({ select: (s) => s.location.pathname });
@@ -195,7 +197,7 @@ export function AppSidebar() {
           <BrandMark className="h-7 w-auto shrink-0" />
           {!collapsed && (
             <div className="min-w-0">
-              <div className="font-display text-sm font-semibold leading-tight truncate">Infinity Grand Hotel</div>
+              <div className="font-display text-sm font-semibold leading-tight truncate">{brand?.app_short_name || brand?.app_name || "Infinity Grand Hotel"}</div>
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground">PMS</div>
             </div>
           )}

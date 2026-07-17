@@ -37,6 +37,15 @@ function BrandFavicon() {
   return null;
 }
 
+function BrandTheme() {
+  const { data } = useBrandSettings();
+  useEffect(() => {
+    if (!data?.primary_color) return;
+    document.documentElement.style.setProperty("--primary", data.primary_color);
+  }, [data?.primary_color]);
+  return null;
+}
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -124,6 +133,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <BrandFavicon />
+        <BrandTheme />
         <Outlet />
         <Toaster richColors position="top-right" />
       </ThemeProvider>

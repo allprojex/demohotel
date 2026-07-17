@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Palette, Plus } from "lucide-react";
+import { Palette, Plus, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/properties")({
@@ -92,21 +92,39 @@ function PropertiesPage() {
 }
 
 function CustomizeProperty({ property, onDone }: { property: any; onDone: () => void }) {
+  const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [f, setF] = useState({ name: property.name ?? "", brand_tagline: property.brand_tagline ?? "", brand_primary_color: property.brand_primary_color ?? "#0f766e", address: property.address ?? "", phone: property.phone ?? "", email: property.email ?? "", website: property.website ?? "" });
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [f, setF] = useState({ name: property.name ?? "", brand_name: property.brand_name ?? property.name ?? "", brand_tagline: property.brand_tagline ?? "", brand_primary_color: property.brand_primary_color ?? "#0f766e", brand_logo_url: property.brand_logo_url ?? "", address: property.address ?? "", phone: property.phone ?? "", email: property.email ?? "", website: property.website ?? "" });
+  async function uploadLogo(file: File) {
+    if (!file.type.startsWith("image/") || file.size > 2 * 1024 * 1024) return toast.error("Choose a PNG, JPG, SVG or WEBP logo under 2 MB.");
+    setUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${property.id}/logo/${crypto.randomUUID()}.${ext}`;
+    const uploaded = await supabase.storage.from("brand-assets").upload(path, file, { contentType: file.type });
+    if (uploaded.error) { setUploading(false); return toast.error(uploaded.error.message); }
+    const signed = await supabase.storage.from("brand-assets").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    setUploading(false);
+    if (signed.error || !signed.data?.signedUrl) return toast.error(signed.error?.message ?? "Could not save logo.");
+    setF((current) => ({ ...current, brand_logo_url: signed.data.signedUrl }));
+    toast.success("Logo uploaded. Save customization to apply it.");
+  }
   async function save() {
     setSaving(true);
     const { error } = await (supabase.from("properties") as any).update(f).eq("id", property.id);
     setSaving(false);
     if (error) return toast.error(error.message);
+    await qc.invalidateQueries({ queryKey: ["brand-settings"] });
     toast.success("Hotel customization saved"); setOpen(false); onDone();
   }
   return <Dialog open={open} onOpenChange={setOpen}>
     <DialogTrigger asChild><Button size="sm" variant="outline"><Palette className="mr-1 h-3.5 w-3.5" />Customize</Button></DialogTrigger>
     <DialogContent><DialogHeader><DialogTitle>Customize your hotel demo</DialogTitle></DialogHeader>
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2"><Label>Hotel name</Label><Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>Hotel name</Label><Input value={f.brand_name} onChange={(e) => setF({ ...f, name: e.target.value, brand_name: e.target.value })} /></div>
+        <div className="sm:col-span-2 space-y-2"><Label>Hotel logo</Label><div className="flex items-center gap-3">{f.brand_logo_url ? <img src={f.brand_logo_url} alt="Hotel logo preview" className="h-16 w-24 rounded-md border object-contain p-2" /> : <div className="flex h-16 w-24 items-center justify-center rounded-md border text-xs text-muted-foreground">No logo</div>}<input ref={fileRef} hidden type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => { const file = e.target.files?.[0]; if (file) uploadLogo(file); e.target.value = ""; }} /><Button type="button" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}><Upload className="mr-1 h-4 w-4" />{uploading ? "Uploading…" : "Upload logo"}</Button>{f.brand_logo_url && <Button type="button" variant="ghost" onClick={() => setF({ ...f, brand_logo_url: "" })}>Remove</Button>}</div></div>
         <div className="sm:col-span-2"><Label>Tagline</Label><Input value={f.brand_tagline} onChange={(e) => setF({ ...f, brand_tagline: e.target.value })} /></div>
         <div><Label>Brand colour</Label><Input type="color" value={f.brand_primary_color} onChange={(e) => setF({ ...f, brand_primary_color: e.target.value })} /></div>
         <div><Label>Phone</Label><Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
