@@ -16,7 +16,7 @@ interface Props { propertyId: string | null; }
 
 export function TrialDataModule({ propertyId }: Props) {
   const qc = useQueryClient();
-  const isSuper = useHasAnyRole(["super_admin"] as any, null);
+  const isAdmin = useHasAnyRole(["super_admin", "hotel_owner", "general_manager"] as any, propertyId);
   const seedFn = useServerFn(seedTrialData);
   const purgeFn = useServerFn(purgeTrialData);
   const countsFn = useServerFn(trialDataCounts);
@@ -25,16 +25,16 @@ export function TrialDataModule({ propertyId }: Props) {
 
   const counts = useQuery({
     queryKey: ["trial-counts", propertyId],
-    enabled: !!propertyId && !!isSuper.allowed,
+    enabled: !!propertyId && !!isAdmin.allowed,
     queryFn: () => countsFn({ data: { propertyId: propertyId! } }),
   });
 
   if (!propertyId) return <div className="p-6 text-sm text-muted-foreground">Select a property first.</div>;
-  if (isSuper.loading) return <div className="p-6 text-sm text-muted-foreground">Checking access…</div>;
-  if (!isSuper.allowed) {
+  if (isAdmin.loading) return <div className="p-6 text-sm text-muted-foreground">Checking access…</div>;
+  if (!isAdmin.allowed) {
     return (
       <Card><CardContent className="p-6 text-sm text-muted-foreground">
-        Only a System Super Admin can seed or purge trial data.
+        Only a hotel owner or property administrator can manage trial data.
       </CardContent></Card>
     );
   }
@@ -44,7 +44,8 @@ export function TrialDataModule({ propertyId }: Props) {
     try {
       const r = await seedFn({ data: { propertyId: propertyId! } });
       toast.success(`Seeded ${r.items} items, ${r.suppliers} suppliers, ${r.orders} POS sales`);
-      await qc.invalidateQueries();
+      void qc.invalidateQueries({ queryKey: ["trial-counts", propertyId] });
+      void qc.invalidateQueries({ queryKey: ["inventory"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Seed failed");
     } finally { setBusy(null); }
@@ -54,7 +55,8 @@ export function TrialDataModule({ propertyId }: Props) {
     try {
       await purgeFn({ data: { propertyId: propertyId! } });
       toast.success("All trial data removed");
-      await qc.invalidateQueries();
+      void qc.invalidateQueries({ queryKey: ["trial-counts", propertyId] });
+      void qc.invalidateQueries({ queryKey: ["inventory"] });
     } catch (e: any) {
       toast.error(e?.message ?? "Purge failed");
     } finally { setBusy(null); }

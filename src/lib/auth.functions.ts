@@ -192,6 +192,19 @@ export const createDemoWorkspace = createServerFn({ method: "POST" })
       ]);
       if (role.error) throw role.error;
       if (profile.error) throw profile.error;
+      const types = await (supabaseAdmin.from("room_types") as any).insert([
+        { property_id: propertyId, code: "STD", name: "Standard Room", description: "Comfortable room for two guests", base_occupancy: 2, max_occupancy: 2, base_rate: 450, amenities: ["Wi-Fi", "Air conditioning", "Television"] },
+        { property_id: propertyId, code: "DLX", name: "Deluxe Room", description: "Spacious upgraded room", base_occupancy: 2, max_occupancy: 3, base_rate: 700, amenities: ["Wi-Fi", "Air conditioning", "Mini bar", "Breakfast"] },
+        { property_id: propertyId, code: "STE", name: "Executive Suite", description: "Premium suite with living area", base_occupancy: 2, max_occupancy: 4, base_rate: 1200, amenities: ["Wi-Fi", "Living area", "Mini bar", "Breakfast"] },
+      ]).select("id,code");
+      if (types.error || !types.data) throw types.error ?? new Error("Could not prepare sample rooms.");
+      const typeByCode = Object.fromEntries(types.data.map((row: any) => [row.code, row.id]));
+      const rooms = await (supabaseAdmin.from("rooms") as any).insert([
+        ...[101, 102, 103, 104, 105, 106].map((number) => ({ property_id: propertyId, room_type_id: typeByCode.STD, number: String(number), floor: "1", status: "available", housekeeping_status: "clean" })),
+        ...[201, 202, 203, 204].map((number) => ({ property_id: propertyId, room_type_id: typeByCode.DLX, number: String(number), floor: "2", status: "available", housekeeping_status: "clean" })),
+        ...[301, 302].map((number) => ({ property_id: propertyId, room_type_id: typeByCode.STE, number: String(number), floor: "3", status: "available", housekeeping_status: "clean" })),
+      ]);
+      if (rooms.error) throw rooms.error;
       const url = process.env.SUPABASE_URL;
       const key = process.env.SUPABASE_PUBLISHABLE_KEY;
       if (!url || !key) throw new Error("Authentication is unavailable");

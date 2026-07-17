@@ -57,11 +57,11 @@ describe("trial data file actions", () => {
     expect(block).toMatch(/propertyId required/);
   });
 
-  it("seed and purge assert super_admin before touching data", () => {
+  it("seed and purge assert property admin before touching data", () => {
     for (const fn of ["seedTrialData", "purgeTrialData"]) {
       const idx = src.indexOf(`export const ${fn}`);
       const block = src.slice(idx, idx + 3000);
-      expect(block, fn).toMatch(/assertSuperAdmin/);
+      expect(block, fn).toMatch(/assertPropertyAdmin\(s, context\.userId, data\.propertyId\)/);
     }
   });
 
@@ -71,10 +71,9 @@ describe("trial data file actions", () => {
     expect(block).toMatch(/assertPropertyAdmin\(s, context\.userId, data\.propertyId\)/);
   });
 
-  it("has_role/has_any_role RPCs are the authoritative source of truth", () => {
+  it("has_any_role RPC is the authoritative source of truth", () => {
     // The gate MUST call the DB-side security-definer function — not a
     // client-computed list — so a compromised client cannot spoof roles.
-    expect(src).toMatch(/rpc\("has_role"/);
     expect(src).toMatch(/rpc\("has_any_role"/);
   });
 });

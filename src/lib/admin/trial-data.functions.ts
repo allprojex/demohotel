@@ -7,20 +7,11 @@ import { runServerOp } from "@/lib/server/errors.server";
  *
  * Every row we create is marked with either the `[TEST]` name prefix or the
  * `TEST-` SKU prefix so purgeTrialData can remove it deterministically without
- * schema changes. Restricted to super_admin.
+ * schema changes. Restricted to admins of the selected property.
  */
 
 const TEST_TAG = "[TEST]";
 const SKU_PREFIX = "TEST-";
-
-async function assertSuperAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase.rpc("has_role", {
-    _user_id: userId,
-    _role: "super_admin" as never,
-  } as never);
-  if (error) throw new Error(`has_role failed: ${error.message}`);
-  if (!data) throw new Error("Only System Super Admin can manage trial data.");
-}
 
 async function assertPropertyAdmin(supabase: any, userId: string, propertyId: string) {
   const { data, error } = await supabase.rpc("has_any_role", {
@@ -75,7 +66,6 @@ export const seedTrialData = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     runServerOp({ op: "trialData.seed", propertyId: data.propertyId, userId: context.userId }, async () => {
       const s = context.supabase as any;
-      await assertSuperAdmin(s, context.userId);
       await assertPropertyAdmin(s, context.userId, data.propertyId);
 
       // --- Stock location (reuse existing or create a TEST one) ---
@@ -222,7 +212,7 @@ export const purgeTrialData = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) =>
     runServerOp({ op: "trialData.purge", propertyId: data.propertyId, userId: context.userId }, async () => {
       const s = context.supabase as any;
-      await assertSuperAdmin(s, context.userId);
+      await assertPropertyAdmin(s, context.userId, data.propertyId);
 
       // Orders first (cascade covers pos_order_items, pos_payments, pos_kots).
       const orders = await s.from("pos_orders").select("id")
