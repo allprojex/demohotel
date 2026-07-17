@@ -42,7 +42,7 @@ import { BrandModule } from "@/components/admin/modules/brand-module";
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
     meta: [
-      { title: "Administration · ThesKwoff Hotel" },
+      { title: "Administration · Infinity Grand Hotel" },
       {
         name: "description",
         content:

@@ -29,7 +29,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/admin_/recycle-bin")({
   head: () => ({
     meta: [
-      { title: "Recycle Bin · ThesKwoff Hotel" },
+      { title: "Recycle Bin · Infinity Grand Hotel" },
       { name: "description", content: "Restore or permanently delete removed items across the system." },
       { name: "robots", content: "noindex" },
     ],

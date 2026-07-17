@@ -27,7 +27,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/admin_/esl")({
   head: () => ({
     meta: [
-      { title: "ESL Dashboard · ThesKwoff Hotel" },
+      { title: "ESL Dashboard · Infinity Grand Hotel" },
       { name: "description", content: "Electronic shelf label management: templates, product mapping, batch export." },
       { name: "robots", content: "noindex" },
     ],

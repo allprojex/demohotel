@@ -34,7 +34,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/admin_/printers")({
   head: () => ({
     meta: [
-      { title: "Printers · ThesKwoff Hotel" },
+      { title: "Printers · Infinity Grand Hotel" },
       { name: "description", content: "Universal print manager — pair USB, Bluetooth, and cloud printers for receipts, invoices, labels, and documents." },
       { name: "robots", content: "noindex" },
     ],
@@ -108,7 +108,7 @@ function RegisteredTab({ propertyId }: { propertyId: string }) {
     try {
       if (p.kind === "printnode" && p.printnode_id) {
         // Simple text via raw
-        const encoded = btoa("ThesKwoff Hotel — Test print\n\n\n\n");
+        const encoded = btoa("Infinity Grand Hotel — Test print\n\n\n\n");
         const res: any = await sendPrintNodeJob({ data: {
           printnodeId: Number(p.printnode_id),
           title: `Test — ${p.name}`,
@@ -121,7 +121,7 @@ function RegisteredTab({ propertyId }: { propertyId: string }) {
         await pairAndSend(p.kind, bytes);
       } else {
         const bytes = buildReceipt("TEST RECEIPT", [
-          { type: "text", text: "ThesKwoff Hotel", align: "center" },
+          { type: "text", text: "Infinity Grand Hotel", align: "center" },
           { type: "text", text: format(new Date(), "PPpp"), align: "center" },
           { type: "hr" },
           { type: "text", text: "If you can read this, the printer works." },
@@ -362,7 +362,7 @@ function JobsTab({ propertyId: _p }: { propertyId: string }) {
   const list = useQuery({ queryKey: ["print-jobs"], queryFn: () => listFn() });
 
   function browserFallback() {
-    browserPrint(`<h1>ThesKwoff Hotel</h1><p>Sample document sent via the browser print dialog.</p>
+    browserPrint(`<h1>Infinity Grand Hotel</h1><p>Sample document sent via the browser print dialog.</p>
       <p>Use this fallback for any file format your browser can render: PDF (open first in a viewer), DOCX (via preview), images, HTML pages.</p>`);
   }
 

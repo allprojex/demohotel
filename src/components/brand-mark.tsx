@@ -25,7 +25,7 @@ export function BrandMark({ className = "h-8" }: { className?: string }) {
     (isDark && data?.logo_dark_url) ||
     data?.logo_url ||
     DEFAULT_LOGO_URL;
-  const alt = data?.app_name || "ThesKwoff Hotel";
+  const alt = data?.app_name || "Infinity Grand Hotel";
 
   return (
     <img

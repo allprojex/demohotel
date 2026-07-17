@@ -60,7 +60,7 @@ function RefreshIntervalControl() {
 
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({ meta: [{ title: "Dashboard — ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Dashboard — Infinity Grand Hotel" }] }),
   component: DashboardPage,
 });
 

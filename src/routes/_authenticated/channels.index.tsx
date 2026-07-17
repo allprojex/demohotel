@@ -18,7 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 
 export const Route = createFileRoute("/_authenticated/channels/")({
-  head: () => ({ meta: [{ title: "Channel Manager · ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Channel Manager · Infinity Grand Hotel" }] }),
   component: ChannelsIndex,
 });
 

@@ -14,8 +14,8 @@ export type BrandSettings = {
 };
 
 const DEFAULTS: BrandSettings = {
-  app_name: "ThesKwoff Hotel",
-  app_short_name: "ThesKwoff Hotel",
+  app_name: "Infinity Grand Hotel",
+  app_short_name: "Infinity Grand Hotel",
   tagline: null,
   logo_url: null,
   logo_dark_url: null,

@@ -21,7 +21,7 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/book/checkout/$roomTypeId")({
-  head: () => ({ meta: [{ title: "Checkout — ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Checkout — Infinity Grand Hotel" }] }),
   validateSearch: (s) => searchSchema.parse(s),
   component: Checkout,
 });
@@ -87,7 +87,7 @@ function Checkout() {
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <Link to="/book" className="flex items-center gap-2">
             <BrandMark className="h-7 w-auto" />
-            <span className="font-display font-semibold text-sm">ThesKwoff Hotel</span>
+            <span className="font-display font-semibold text-sm">Infinity Grand Hotel</span>
           </Link>
         </div>
       </header>

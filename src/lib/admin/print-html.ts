@@ -29,7 +29,7 @@ export function openPrintView(opts: {
     <h1>${escapeHtml(opts.title)}</h1>
     ${opts.subtitle ? `<div class="subtitle">${escapeHtml(opts.subtitle)}</div>` : ""}
     ${opts.bodyHtml}
-    <footer>Printed ${new Date().toLocaleString()} · ThesKwoff Hotel</footer>
+    <footer>Printed ${new Date().toLocaleString()} · Infinity Grand Hotel</footer>
     <script>window.addEventListener('load',()=>setTimeout(()=>window.print(),150));</script>
     </body></html>`);
   w.document.close();

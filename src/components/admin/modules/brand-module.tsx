@@ -59,7 +59,7 @@ export function BrandModule() {
     mutationFn: async (values: BrandFormState) => {
       // RLS on system_settings restricts writes to super_admin.
       const payload: Record<string, unknown> = {
-        app_name: values.app_name || "ThesKwoff Hotel",
+        app_name: values.app_name || "Infinity Grand Hotel",
         app_short_name: nullify(values.app_short_name),
         tagline: nullify(values.tagline),
         logo_url: nullify(values.logo_url),
@@ -150,14 +150,14 @@ export function BrandModule() {
               <Input
                 value={form.app_name ?? ""}
                 onChange={(e) => setForm({ ...form, app_name: e.target.value })}
-                placeholder="ThesKwoff Hotel"
+                placeholder="Infinity Grand Hotel"
               />
             </Field>
             <Field label="Short name (sidebar)">
               <Input
                 value={form.app_short_name ?? ""}
                 onChange={(e) => setForm({ ...form, app_short_name: e.target.value })}
-                placeholder="ThesKwoff Hotel"
+                placeholder="Infinity Grand Hotel"
               />
             </Field>
             <Field label="Tagline" className="sm:col-span-2">
@@ -254,10 +254,10 @@ export function BrandModule() {
             <CardDescription>How the brand appears across the app.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <BrowserTabPreview title={form.app_name || "ThesKwoff Hotel"} favicon={form.favicon_url} />
+            <BrowserTabPreview title={form.app_name || "Infinity Grand Hotel"} favicon={form.favicon_url} />
             <Separator />
             <SidebarHeaderPreview
-              name={form.app_short_name || form.app_name || "ThesKwoff Hotel"}
+              name={form.app_short_name || form.app_name || "Infinity Grand Hotel"}
               logo={form.logo_url}
             />
             <Separator />

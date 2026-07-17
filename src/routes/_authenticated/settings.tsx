@@ -17,7 +17,7 @@ import { Coins, RefreshCw, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-  head: () => ({ meta: [{ title: "Settings — ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Settings — Infinity Grand Hotel" }] }),
   component: SettingsPage,
 });
 

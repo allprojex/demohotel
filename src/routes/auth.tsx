@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Staff & Admin Sign In — ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Staff & Admin Sign In — Infinity Grand Hotel" }] }),
   component: AuthPage,
 });
 
@@ -87,7 +87,7 @@ function AuthPage() {
       <main className="w-full max-w-md">
         <header className="mb-7 text-center">
           <BrandMark className="mx-auto h-12" />
-          <h1 className="mt-4 text-2xl font-semibold">ThesKwoff Hotel</h1>
+          <h1 className="mt-4 text-2xl font-semibold">Infinity Grand Hotel</h1>
           <p className="mt-1 text-sm text-muted-foreground">Property Management System</p>
         </header>
         <section className="rounded-2xl border bg-card p-5 shadow-[var(--shadow-elegant)] sm:p-6">

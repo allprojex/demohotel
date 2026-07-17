@@ -16,7 +16,7 @@ export const Route = createFileRoute("/change-password")({
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
   },
-  head: () => ({ meta: [{ title: "Change Password — ThesKwoff Hotel" }] }),
+  head: () => ({ meta: [{ title: "Change Password — Infinity Grand Hotel" }] }),
   component: ChangePasswordPage,
 });
 
